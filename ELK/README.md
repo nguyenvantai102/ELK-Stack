@@ -1,4 +1,4 @@
-<h1 align='center'> ✨ BigData Architecture ✨</h1>
+<h1 align='center'> ✨ ELK Stacks ✨</h1>
 
 - Requirements:
   - Java 11
@@ -6,54 +6,63 @@
 
 <h2 align="center">🛠 Tool 🛠</h2>
 
-<strong> Spark </strong>
+<strong> Elasticsearch </strong>
+
+1. Download Elasticsearch
 
 ```
-wget https://www.apache.org/dyn/closer.lua/spark/spark-3.3.0/spark-3.3.0-bin-hadoop3.tgz
-tar -xzf spark-3.3.0-bin-hadoop3.tgz
-cd ~/spark-3.3.0-bin-hadoop3/conf
-cp spark-env.sh.template spark-env.sh
-vi spark-env.sh
-  MASTER=local[2]
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.3.2-linux-x86_64.tar.gz
+tar -xzf elasticsearch-8.3.2-linux-x86_64.tar.gz
 ```
 
-<strong> Kafka </strong>
+<strong> Logstash </strong>
 
+1. Download Logstash
 ```
-wget https://www.apache.org/dyn/closer.cgi?path=/kafka/3.2.0/kafka_2.12-3.2.0.tgz
-tar -xzf kafka_2.12-3.2.0.tgz
-vi ~/kafka_2.12-3.2.0/config/server.properties
-  listeners=PLAINTEXT://<ip>:9092
-  advertised.listeners=PLAINTEXT://<ip>:9092
+wget https://artifacts.elastic.co/downloads/logstash/logstash-8.3.2-linux-x86_64.tar.gz
+tar -xzf logstash-8.3.2-linux-x86_64.tar.gz
 ```
 
-<strong> Nprobe </strong>
+2. Edit the Logstash Configuration
 
-References: <a src="https://linoxide.com/how-to-install-ntopng-on-ubuntu-20-04/">Nprobe</a>
-
-
-<h2 align="center">🔥 Launching BigData 🔥</h2>
 
 ```
-cd ~/spark-3.3.0-bin-hadoop3/
-sbin/start-master.sh
-sbin/start-slave.sh spark://<ip>:7077
+nano config/logstash.yml
 
-cd ~/kafka_2.12-3.2.0/
-bin/zookeeper-server-start.sh config/zookeeper.properties
-bin/kafka-server-start.sh config/server.properties
-# Create Topic
-bin/kafka-topics.sh --create --bootstrap-server <ip>:9092 --topic topicFlows --partitions 1 --replication-factor 1
-# View list topic (cannot run)
-bin/kafka-topics.sh --list--bootstrap-server 192.168.1.20:9092 
-# View traffic
-bin/kafka-console-consumer.sh --topic --bootstrap-server <ip>:9092 topicFlows 
+# Write into file
+modules:
+  - name: netflow
+    var.input.udp.port: 9996
+    var.elasticsearch.hosts: http://127.0.0.1:9200
+    var.elasticsearch.ssl.enabled: false
+    var.kibana.host: 127.0.0.1:5601
+    var.kibana.scheme: http
+    var.kibana.ssl.enabled: false
+    var.kibana.ssl.verification_mode: disable
+    
+ ```
 
-# Collector
-sudo nprobe --collector-port 9995 -V 9 -n none -T="%IPV4_SRC_ADDR %PROTOCOL %L7_PROTO %IN_BYTES %OUT_BYTES %IN_PKTS %OUT_PKTS %FLOW_DURATION_MILLISECONDS %TCP_FLAGS %CLIENT_TCP_FLAGS %SERVER_TCP_FLAGS %L7_PROTO_RISK %DURATION_IN %DURATION_OUT %LONGEST_FLOW_PKT %SHORTEST_FLOW_PKT %MIN_IP_PKT_LEN %MAX_IP_PKT_LEN %SRC_TO_DST_SECOND_BYTES %DST_TO_SRC_SECOND_BYTES %RETRANSMITTED_IN_BYTES %RETRANSMITTED_IN_PKTS %RETRANSMITTED_OUT_BYTES %RETRANSMITTED_OUT_PKTS %SRC_TO_DST_AVG_THROUGHPUT %DST_TO_SRC_AVG_THROUGHPUT %NUM_PKTS_UP_TO_128_BYTES %NUM_PKTS_128_TO_256_BYTES %NUM_PKTS_256_TO_512_BYTES %NUM_PKTS_512_TO_1024_BYTES %NUM_PKTS_1024_TO_1514_BYTES %TCP_WIN_MAX_IN %TCP_WIN_MAX_OUT %ICMP_TYPE %ICMP_IPV4_TYPE %DNS_QUERY_ID %DNS_QUERY_TYPE %DNS_TTL_ANSWER %FTP_COMMAND_RET_CODE" --kafka "<ip>:9092;topicFlows"
+<strong> Kibana </strong>
 
-# Run IDS
-bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 --driver-memory 1G <file_address> | grep -vi INFO | grep -vi WARN
+1. Download Kibana
+
+```
+wget https://artifacts.elastic.co/downloads/kibana/kibana-8.3.2-linux-x86_64.tar.gz
+tar -xzf kibana-8.3.2-linux-x86_64.tar.gz
+```
+
+
+<h2 align="center">🔥 Launching ELK Stacks 🔥</h2>
+
+```
+cd ~/elasticsearch-8.3.2-linux-x86_64/
+bin/elasticsearch
+cd ~/kibana-8.3.2-linux-x86_64/
+bin/kibana
+cd ~/logstash-8.3.2-linux-x86_64/
+bin/logstash --modules netflow setup
 ```
 
 <h2 align="center">🌱 Result 🌱</h2>
+
+<p align="center"> <img src="https://user-images.githubusercontent.com/67199007/180600963-74105ff8-2661-47fc-a85e-7e39bafd2ab0.png"></p>
